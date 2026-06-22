@@ -61,8 +61,11 @@ def _detect_plate_easyocr(image: np.ndarray) -> dict:
     Returns the best plate-like detection.
     """
     reader = _get_easyocr_reader()
-    # Read standard text without paragraph mode to preserve confidence scores
-    results = reader.readtext(image)
+    # Read standard text restricting to alphanumerics to prevent symbol hallucinations
+    results = reader.readtext(
+        image, 
+        allowlist='ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 '
+    )
 
     if not results:
         return {
@@ -83,7 +86,8 @@ def _detect_plate_easyocr(image: np.ndarray) -> dict:
         digits = sum(c.isdigit() for c in cleaned_no_space)
         
         # A valid Indian plate will almost always have at least 2 letters and 3 numbers
-        if letters >= 2 and digits >= 3 and 7 <= len(cleaned_no_space) <= 13:
+        # We allow a slightly wider length margin (6 to 14) to catch partially read plates
+        if letters >= 2 and digits >= 3 and 6 <= len(cleaned_no_space) <= 14:
             if conf > best_conf:
                 best_conf = conf
                 best_plate = cleaned
