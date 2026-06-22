@@ -61,7 +61,8 @@ def _detect_plate_easyocr(image: np.ndarray) -> dict:
     Returns the best plate-like detection.
     """
     reader = _get_easyocr_reader()
-    results = reader.readtext(image)
+    # Read text with paragraph=True to merge multi-line license plates into one string
+    results = reader.readtext(image, paragraph=True)
 
     if not results:
         return {
@@ -75,9 +76,16 @@ def _detect_plate_easyocr(image: np.ndarray) -> dict:
     best_plate = None
     best_conf = 0.0
 
-    for bbox_pts, text, conf in results:
+    for bbox_pts, text in results:
+        # With paragraph=True, confidence is not returned in the same way, we rely on filtering
         cleaned = _clean_plate_text(text)
-        if len(cleaned.replace(" ", "")) >= 4:  # At least 4 chars
+        cleaned_no_space = cleaned.replace(" ", "")
+        
+        # Indian license plates are between 8 and 13 characters long
+        if 8 <= len(cleaned_no_space) <= 13:
+            # We assign a pseudo-confidence based on length to prioritize valid plate formats
+            conf = len(cleaned_no_space) / 13.0
+            
             if conf > best_conf:
                 best_conf = conf
                 best_plate = cleaned
@@ -94,9 +102,9 @@ def _detect_plate_easyocr(image: np.ndarray) -> dict:
             "plate_confidence": round(best_conf, 4),
         }
 
-    # If no plate-like text found, return the highest-confidence result
-    best_result = max(results, key=lambda r: r[2])
-    bbox_pts, text, conf = best_result
+    # If no plate-like text found, return the longest text found
+    best_result = max(results, key=lambda r: len(r[1]))
+    bbox_pts, text = best_result
     pts = np.array(bbox_pts)
     x1, y1 = pts.min(axis=0).astype(int)
     x2, y2 = pts.max(axis=0).astype(int)
@@ -104,7 +112,7 @@ def _detect_plate_easyocr(image: np.ndarray) -> dict:
     return {
         "plate_text": _clean_plate_text(text) or "unknown",
         "plate_bbox": [int(x1), int(y1), int(x2), int(y2)],
-        "plate_confidence": round(conf, 4),
+        "plate_confidence": 0.5, # Default fallback confidence
     }
 
 
