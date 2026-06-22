@@ -192,10 +192,15 @@ def detect_triple_riding(
                 
                 # Check distance between centers
                 dist = math.hypot(cx1 - cx2, cy1 - cy2)
-                # We use a larger distance since it's head-to-head.
-                # Usually heads on a bike are within 150px of each other.
-                # We'll multiply proximity_px by 3 (default 90px) to be safe for clustering.
-                if dist < (proximity_px * 3):
+                
+                # Dynamic threshold: heads on the same bike are typically within 
+                # 2.5 to 3 times the width/height of their own head bounding boxes.
+                # This works for both high-res and low-res images automatically!
+                h1_width = x2 - x1
+                h2_width = x4 - x3
+                dynamic_threshold = max(h1_width, h2_width) * 3.5
+                
+                if dist < dynamic_threshold:
                     adj[i].append(j)
                     adj[j].append(i)
 
