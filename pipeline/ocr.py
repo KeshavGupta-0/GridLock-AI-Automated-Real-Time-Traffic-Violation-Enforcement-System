@@ -99,21 +99,10 @@ def _detect_plate_easyocr(image: np.ndarray) -> dict:
             "plate_confidence": round(best_conf, 4),
         }
 
-    # If no strict plate match, fall back to the text with the most digits/letters combined
-    def score_text(t):
-        c = _clean_plate_text(t[1]).replace(" ", "")
-        return len(c) + sum(ch.isdigit() for ch in c)
-
-    best_result = max(results, key=score_text)
-    bbox_pts, text, conf = best_result
-    pts = np.array(bbox_pts)
-    x1, y1 = pts.min(axis=0).astype(int)
-    x2, y2 = pts.max(axis=0).astype(int)
-
     return {
-        "plate_text": _clean_plate_text(text) or "unknown",
-        "plate_bbox": [int(x1), int(y1), int(x2), int(y2)],
-        "plate_confidence": round(conf, 4),
+        "plate_text": "unknown",
+        "plate_bbox": None,
+        "plate_confidence": 0.0,
     }
 
 
