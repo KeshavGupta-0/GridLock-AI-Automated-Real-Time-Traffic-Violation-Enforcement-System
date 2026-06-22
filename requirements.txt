@@ -1,0 +1,24 @@
+# Core ML / CV
+ultralytics>=8.0.0
+torch>=2.0.0
+torchvision>=0.15.0
+opencv-python>=4.8.0
+Pillow>=10.0.0
+numpy>=1.24.0
+
+# Roboflow
+roboflow>=1.1.0
+inference-sdk>=0.9.0
+
+# OCR
+easyocr>=1.7.0
+
+# Web App
+streamlit>=1.30.0
+
+# Data / Visualization
+pandas>=2.0.0
+plotly>=5.15.0
+
+# Utilities
+python-dateutil>=2.8.0
