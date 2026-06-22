@@ -141,7 +141,8 @@ def run_pipeline(
         )
 
         # ── Step 3: License plate OCR ──
-        plate_result = detect_plate(processed_image)
+        # Pass the raw_image to OCR because resizing heavily degrades small text readability
+        plate_result = detect_plate(raw_image)
 
         # ── Step 4: Merge results ──
         all_results = {
