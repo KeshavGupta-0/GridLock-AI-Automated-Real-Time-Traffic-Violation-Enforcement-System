@@ -15,6 +15,10 @@ import plotly.express as px
 from pathlib import Path
 import sys
 import os
+import warnings
+
+# Suppress harmless PyTorch CPU warnings
+warnings.filterwarnings("ignore", category=UserWarning, module="torch.utils.data.dataloader")
 
 # Add project root to path
 PROJECT_ROOT = Path(__file__).parent.parent.resolve()
