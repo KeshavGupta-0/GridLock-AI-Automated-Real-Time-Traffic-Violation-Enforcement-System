@@ -6,6 +6,7 @@ merges results into a single unified record.
 """
 
 import time
+import cv2
 from datetime import datetime, timezone
 from pathlib import Path
 import sys
