@@ -23,41 +23,64 @@ def load_image(source) -> np.ndarray:
     Raises ValueError if the source cannot be loaded.
     """
     try:
+        def _enforce_max_size(img_array: np.ndarray, max_dim: int = 2560) -> np.ndarray:
+            h, w = img_array.shape[:2]
+            if max(h, w) > max_dim:
+                scale = max_dim / max(h, w)
+                return cv2.resize(img_array, (int(w * scale), int(h * scale)), interpolation=cv2.INTER_AREA)
+            return img_array
+
         # Already a numpy array
         if isinstance(source, np.ndarray):
             if len(source.shape) == 2:
-                return cv2.cvtColor(source, cv2.COLOR_GRAY2BGR)
-            if source.shape[2] == 4:
-                return cv2.cvtColor(source, cv2.COLOR_BGRA2BGR)
-            return source
+                img = cv2.cvtColor(source, cv2.COLOR_GRAY2BGR)
+            elif source.shape[2] == 4:
+                img = cv2.cvtColor(source, cv2.COLOR_BGRA2BGR)
+            else:
+                img = source
+            return _enforce_max_size(img)
 
         # PIL Image
         if isinstance(source, Image.Image):
+            source.thumbnail((2560, 2560), Image.Resampling.LANCZOS)
             img_rgb = np.array(source.convert("RGB"))
             return cv2.cvtColor(img_rgb, cv2.COLOR_RGB2BGR)
 
         # Bytes or Streamlit UploadedFile (has .read())
-        if hasattr(source, "read"):
-            file_bytes = np.frombuffer(source.read(), dtype=np.uint8)
-            img = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
-            if img is None:
-                raise ValueError("Failed to decode image from uploaded file.")
-            return img
-
-        if isinstance(source, bytes):
-            file_bytes = np.frombuffer(source, dtype=np.uint8)
-            img = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
-            if img is None:
-                raise ValueError("Failed to decode image from bytes.")
-            return img
+        if hasattr(source, "read") or isinstance(source, bytes):
+            import io
+            file_bytes = source.read() if hasattr(source, "read") else source
+            try:
+                # Use PIL for memory-efficient loading of massive JPEGs
+                pil_img = Image.open(io.BytesIO(file_bytes))
+                from PIL import ImageOps
+                pil_img = ImageOps.exif_transpose(pil_img) # Fix orientation
+                pil_img.thumbnail((2560, 2560), Image.Resampling.LANCZOS)
+                img_rgb = np.array(pil_img.convert("RGB"))
+                return cv2.cvtColor(img_rgb, cv2.COLOR_RGB2BGR)
+            except Exception:
+                # Fallback to cv2
+                np_bytes = np.frombuffer(file_bytes, dtype=np.uint8)
+                img = cv2.imdecode(np_bytes, cv2.IMREAD_COLOR)
+                if img is None:
+                    raise ValueError("Failed to decode image from bytes.")
+                return _enforce_max_size(img)
 
         # File path (str or Path)
         if isinstance(source, (str, Path)):
             path = str(source)
-            img = cv2.imread(path, cv2.IMREAD_COLOR)
-            if img is None:
-                raise ValueError(f"Failed to load image from path: {path}")
-            return img
+            try:
+                pil_img = Image.open(path)
+                from PIL import ImageOps
+                pil_img = ImageOps.exif_transpose(pil_img)
+                pil_img.thumbnail((2560, 2560), Image.Resampling.LANCZOS)
+                img_rgb = np.array(pil_img.convert("RGB"))
+                return cv2.cvtColor(img_rgb, cv2.COLOR_RGB2BGR)
+            except Exception:
+                img = cv2.imread(path, cv2.IMREAD_COLOR)
+                if img is None:
+                    raise ValueError(f"Failed to load image from path: {path}")
+                return _enforce_max_size(img)
 
         raise ValueError(f"Unsupported image source type: {type(source)}")
 
