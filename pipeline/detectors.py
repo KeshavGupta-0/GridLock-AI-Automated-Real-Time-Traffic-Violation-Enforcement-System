@@ -61,7 +61,8 @@ def _roboflow_infer(image: np.ndarray, model_id: str, api_key: str) -> list:
     response = requests.post(
         url,
         data=img_b64,
-        headers={"Content-Type": "application/x-www-form-urlencoded"}
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
+        timeout=15
     )
 
     if response.status_code == 200:

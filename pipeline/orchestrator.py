@@ -142,7 +142,16 @@ def run_pipeline(
 
         # ── Step 3: License plate OCR ──
         # Pass the raw_image to OCR because resizing heavily degrades small text readability
-        plate_result = detect_plate(raw_image)
+        # However, for massive 20MB+ images, EasyOCR will cause an Out-Of-Memory (OOM) crash!
+        # Cap the max dimension to 3000px for OCR to prevent OOM while keeping plate readable.
+        ocr_image = raw_image
+        max_ocr_dim = 3000
+        h_raw, w_raw = ocr_image.shape[:2]
+        if max(h_raw, w_raw) > max_ocr_dim:
+            ocr_scale = max_ocr_dim / max(h_raw, w_raw)
+            ocr_image = cv2.resize(ocr_image, (int(w_raw * ocr_scale), int(h_raw * ocr_scale)), interpolation=cv2.INTER_AREA)
+
+        plate_result = detect_plate(ocr_image)
 
         # ── Step 4: Merge results ──
         all_results = {
